@@ -3,7 +3,8 @@ This repo contains a barebones template for writing Rust firmware for the [Adafr
 
 ## Features
 * [Embassy](https://embassy.dev/) (embrace the async)
-* USB logging (the board doesn't expose the SWD pins on the RP2040)
+* Board Support Package (BSP): handle pin mapping and grouping in a single location
+* USB logging: the board doesn't expose the SWD pins on the RP2040
 
 ## Initial Setup
 1. `$ cargo generate --git https://github.com/ardentTech/adafruit-feather-rp2040-rfm95-quickstart.git`
@@ -19,3 +20,5 @@ boards, a second stage bootloader is required to configure the external Flash me
 and the `rp2040` feature is brought into scope, what is NOT scoped is a related boot2 implementation. This is because
 the W25Q64JV is not explicitly supported within `embassy-rp`. With no explicit boot2, `embassy-rp` defaults to the
 W25Q080 boot2 implementation, which **appears to just work** with the Adafruit Feather RP2040 RFM95 board. Neat.
+
+If you want to want more info about the RP2040's boot sequence, check out this great article from [Van Hunter Adams](https://vanhunteradams.com/Pico/Bootloader/Boot_sequence.html).

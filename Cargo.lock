@@ -6,6 +6,7 @@ version = 4
 name = "adafruit_feather_rp2040_rfm95_quickstart"
 version = "0.1.0"
 dependencies = [
+ "assign-resources",
  "cortex-m-rt",
  "embassy-executor",
  "embassy-rp",
@@ -49,6 +50,12 @@ checksum = "ef1e3e699d84ab1b0911a1010c5c106aa34ae89aeac103be5ce0c3859db1e891"
 dependencies = [
  "term",
 ]
+
+[[package]]
+name = "assign-resources"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6c0fc5119624f5c171d084b6a1bd3b6447dfadab980bb0d84717906239b77f85"
 
 [[package]]
 name = "atomic-polyfill"
