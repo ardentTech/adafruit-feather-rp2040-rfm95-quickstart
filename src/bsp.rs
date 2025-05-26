@@ -39,6 +39,9 @@ assign_resources! {
         io4: PIN_20,
         io5: PIN_18,
     }
+    rtc: RtcResources {
+        rtc: RTC
+    },
     spi: SpiResources {
         spi1: SPI1,
         spi1_sck: PIN_14,
