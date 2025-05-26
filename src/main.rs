@@ -7,6 +7,7 @@ use embassy_executor::Spawner;
 use embassy_rp::bind_interrupts;
 use embassy_rp::peripherals::USB;
 use embassy_rp::usb::Driver;
+use embassy_time::Timer;
 use panic_halt as _;
 
 use crate::bsp::{AssignedResources, DmaResources, GpioResources, I2cResources, LedResources, LoraResources, SpiResources, UartResources, UsbResources};
@@ -27,6 +28,8 @@ async fn main(spawner: Spawner) {
     let usb_driver = Driver::new(board.usb.usb, Irqs);
     spawner.must_spawn(logging(usb_driver));
 
-    log::info!("entering main loop");
-    loop {}
+    loop {
+        log::info!("iterate");
+        Timer::after_secs(2).await;
+    }
 }

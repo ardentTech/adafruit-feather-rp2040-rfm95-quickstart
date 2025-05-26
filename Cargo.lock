@@ -10,6 +10,7 @@ dependencies = [
  "cortex-m-rt",
  "embassy-executor",
  "embassy-rp",
+ "embassy-time",
  "embassy-usb-logger",
  "log",
  "panic-halt",
