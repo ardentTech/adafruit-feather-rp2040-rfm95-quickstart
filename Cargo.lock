@@ -7,6 +7,7 @@ name = "adafruit_feather_rp2040_rfm95_quickstart"
 version = "0.1.0"
 dependencies = [
  "assign-resources",
+ "cortex-m",
  "cortex-m-rt",
  "embassy-executor",
  "embassy-rp",
