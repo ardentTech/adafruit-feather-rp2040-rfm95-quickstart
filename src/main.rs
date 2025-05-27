@@ -21,14 +21,15 @@ static RTC: Mutex<RefCell<Option<Rtc<embassy_rp::peripherals::RTC>>>> = Mutex::n
 
 // TODO can this work with logging?
 
-// bind_interrupts!(struct Irqs {
-//     USBCTRL_IRQ => embassy_rp::usb::InterruptHandler<USB>;
-// });
+// TODO map RTC_IRQ here?
+bind_interrupts!(struct Irqs {
+    USBCTRL_IRQ => embassy_rp::usb::InterruptHandler<USB>;
+});
 
-// #[embassy_executor::task]
-// pub async fn logging(driver: Driver<'static, USB>) {
-//     embassy_usb_logger::run!(1024, log::LevelFilter::Info, driver);
-// }
+#[embassy_executor::task]
+pub async fn logging(driver: Driver<'static, USB>) {
+    embassy_usb_logger::run!(1024, log::LevelFilter::Info, driver);
+}
 
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
@@ -41,7 +42,6 @@ async fn main(spawner: Spawner) {
 
     let mut rtc = Rtc::new(p.RTC);
     if !rtc.is_running() {
-        log::info!("Start RTC");
         let now = DateTime {
             year: 2000,
             month: 1,
@@ -68,7 +68,7 @@ async fn main(spawner: Spawner) {
     });
 
     loop {
-        wfi(); // TODO vs wfe();
+        wfi();
     }
 }
 
@@ -81,7 +81,6 @@ fn RTC_IRQ() {
         let led = led.as_mut().unwrap();
 
         led.set_high();
-
         rtc.clear_interrupt();
     });
 }
