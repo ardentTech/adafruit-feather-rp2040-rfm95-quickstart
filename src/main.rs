@@ -1,47 +1,25 @@
 #![no_std]
 #![no_main]
 
-mod bsp;
-
 use core::cell::RefCell;
-use cortex_m::asm::{wfe, wfi};
-use cortex_m::interrupt::Mutex;
+use cortex_m::asm::wfi;
 use embassy_executor::Spawner;
-use embassy_rp::{bind_interrupts, interrupt};
+use embassy_rp::interrupt;
 use embassy_rp::gpio::{Level, Output};
-use embassy_rp::pac::i2c::vals::Speed;
-use embassy_rp::peripherals::USB;
 use embassy_rp::rtc::{DateTime, DateTimeFilter, DayOfWeek, Rtc};
-use embassy_rp::usb::Driver;
-use embassy_time::Timer;
+use embassy_sync::blocking_mutex::Mutex;
+use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use panic_halt as _;
 
-static LED: Mutex<RefCell<Option<Output<'static>>>> = Mutex::new(RefCell::new(None));
-static RTC: Mutex<RefCell<Option<Rtc<embassy_rp::peripherals::RTC>>>> = Mutex::new(RefCell::new(None));
-
-// TODO can this work with logging?
-
-// TODO map RTC_IRQ here?
-bind_interrupts!(struct Irqs {
-    USBCTRL_IRQ => embassy_rp::usb::InterruptHandler<USB>;
-});
-
-#[embassy_executor::task]
-pub async fn logging(driver: Driver<'static, USB>) {
-    embassy_usb_logger::run!(1024, log::LevelFilter::Info, driver);
-}
+// "A mutex that allows borrowing data across executors and interrupts."
+static RTC: Mutex<CriticalSectionRawMutex, RefCell<Option<Rtc<embassy_rp::peripherals::RTC>>>> = Mutex::new(RefCell::new(None));
 
 #[embassy_executor::main]
-async fn main(spawner: Spawner) {
+async fn main(_spawner: Spawner) {
     let p = embassy_rp::init(Default::default());
 
-    //let board = split_resources!(p);
-
-    // let usb_driver = Driver::new(p.USB, Irqs);
-    // spawner.must_spawn(logging(usb_driver));
-
-    let mut rtc = Rtc::new(p.RTC);
-    if !rtc.is_running() {
+    let mut real_time_clock = Rtc::new(p.RTC);
+    if !real_time_clock.is_running() {
         let now = DateTime {
             year: 2000,
             month: 1,
@@ -51,36 +29,36 @@ async fn main(spawner: Spawner) {
             minute: 0,
             second: 0,
         };
-        rtc.set_datetime(now).unwrap();
+        real_time_clock.set_datetime(now).unwrap();
     }
+    schedule_alarm(&mut real_time_clock);
+    RTC.lock(|r| r.borrow_mut().replace(real_time_clock));
 
-    let led = Output::new(p.PIN_13, Level::Low);
-    cortex_m::interrupt::free(|cs| {
-        rtc.schedule_alarm(
-            DateTimeFilter::default()
-                .second(5)
-        );
-        LED.borrow(cs).borrow_mut().replace(led);
-        RTC.borrow(cs).borrow_mut().replace(rtc);
-        unsafe {
-            cortex_m::peripheral::NVIC::unmask(interrupt::RTC_IRQ);
-        }
-    });
+    let mut led = Output::new(p.PIN_13, Level::Low);
+
+    unsafe {
+        cortex_m::peripheral::NVIC::unmask(interrupt::RTC_IRQ);
+    }
 
     loop {
         wfi();
+        led.toggle();
     }
 }
 
 #[interrupt]
 fn RTC_IRQ() {
-    cortex_m::interrupt::free(|cs| {
+    critical_section::with(|cs| {
         let mut rtc = RTC.borrow(cs).borrow_mut();
         let rtc = rtc.as_mut().unwrap();
-        let mut led = LED.borrow(cs).borrow_mut();
-        let led = led.as_mut().unwrap();
-
-        led.set_high();
         rtc.clear_interrupt();
+        schedule_alarm(rtc);
     });
+}
+
+fn schedule_alarm(rtc: &mut Rtc<embassy_rp::peripherals::RTC>) {
+    rtc.schedule_alarm(
+        // trigger alarm on 0 second of every minute
+        DateTimeFilter::default().second(0)
+    );
 }
